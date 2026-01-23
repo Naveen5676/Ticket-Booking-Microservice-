@@ -1,0 +1,409 @@
+openapi: 3.0.0
+info:
+  title: TicketFlow API Gateway
+  description: Entry point for TicketFlow microservices ecosystem.
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000
+    description: Local API Gateway
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: token
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        userId: { type: string }
+        name: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        role: { type: string, enum: [user, admin] }
+
+    Event:
+      type: object
+      properties:
+        _id: { type: string }
+        eventName: { type: string }
+        description: { type: string }
+        venue: { type: string }
+        date: { type: integer, description: "Epoch timestamp" }
+        totalSeats: { type: integer }
+        availableSeats: { type: integer }
+        pricePerSeat: { type: integer }
+        category: { type: string }
+        status: { type: string }
+
+    Booking:
+      type: object
+      properties:
+        _id: { type: string }
+        userId: { type: string }
+        eventId: { type: string }
+        seats:
+          type: array
+          items: { type: string }
+        totalAmount: { type: integer }
+        status: { type: string, enum: [PENDING, CONFIRMED, CANCELLED, FAILED] }
+        createdAt: { type: string, format: date-time }
+
+paths:
+  # --- USER ROUTES ---
+  /users/register:
+    post:
+      tags: [Users]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password, phone]
+              properties:
+                name: { type: string }
+                email: { type: string, format: email }
+                password: { type: string, minLength: 6 }
+                phone: { type: string }
+                role: { type: string, enum: [user, admin] }
+      responses:
+        201:
+          description: Created
+        400:
+          description: Validation error
+
+  /users/login:
+    post:
+      tags: [Users]
+      summary: Login and get session cookie
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        200:
+          description: Logged in
+        401:
+          description: Invalid credentials
+
+  /users/logout:
+    post:
+      tags: [Users]
+      summary: Logout user
+      responses:
+        200:
+          description: Logged out
+
+  /users/profile:
+    get:
+      tags: [Users]
+      summary: Get current user profile
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        200:
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        401:
+          description: Unauthorized
+
+  /users/update:
+    patch:
+      tags: [Users]
+      summary: Update user profile
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                phone: { type: string }
+                role: { type: string, enum: [user, admin] }
+      responses:
+        200:
+          description: Updated
+
+  /users/profile/{id}:
+    get:
+      tags: [Users]
+      summary: Get user profile by ID
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        200:
+          description: User profile
+
+  # --- EVENT ROUTES ---
+  /events:
+    get:
+      tags: [Events]
+      summary: List events
+      parameters:
+        - name: page
+          in: query
+          required: true
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          required: true
+          schema: { type: integer, default: 10 }
+        - name: category
+          in: query
+          schema: { type: string, enum: [sports, music, arts, concert] }
+        - name: search
+          in: query
+          schema: { type: string }
+      responses:
+        200:
+          description: List of events
+    post:
+      tags: [Events]
+      summary: Create event (Admin only)
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                [
+                  name,
+                  description,
+                  venue,
+                  date,
+                  totalSeats,
+                  pricePerSeat,
+                  category,
+                ]
+              properties:
+                name: { type: string }
+                description: { type: string }
+                venue: { type: string }
+                date: { type: integer, description: "Epoch timestamp" }
+                totalSeats: { type: integer }
+                pricePerSeat: { type: integer }
+                category: { type: string }
+      responses:
+        201:
+          description: Created
+
+  /events/{id}:
+    get:
+      tags: [Events]
+      summary: Get event details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        200:
+          description: Event details
+    patch:
+      tags: [Events]
+      summary: Update event (Admin only)
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                price: { type: integer }
+                description: { type: string }
+                venue: { type: string }
+                date: { type: integer }
+      responses:
+        200:
+          description: Updated
+    delete:
+      tags: [Events]
+      summary: Delete event (Admin only)
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        200:
+          description: Deleted
+
+  /events/{id}/seats:
+    get:
+      tags: [Events]
+      summary: Get seat map for event
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        200:
+          description: Seat availability details
+
+  # --- BOOKING ROUTES ---
+  /bookings/bookings:
+    post:
+      tags: [Bookings]
+      summary: Create a booking
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [eventId, seats]
+              properties:
+                eventId: { type: string }
+                seats:
+                  type: array
+                  items: { type: string }
+      responses:
+        201:
+          description: Booking created
+    get:
+      tags: [Bookings]
+      summary: List user bookings
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        200:
+          description: List of bookings
+
+  /bookings/bookings/{id}:
+    get:
+      tags: [Bookings]
+      summary: Get booking details
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        200:
+          description: Booking details
+    delete:
+      tags: [Bookings]
+      summary: Cancel booking
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        200:
+          description: Cancelled
+    patch:
+      tags: [Bookings]
+      summary: Update booking status (Internal/Admin)
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [paymentId, status, transactionId]
+              properties:
+                paymentId: { type: string }
+                status: { type: string }
+                transactionId: { type: string }
+      responses:
+        200:
+          description: Updated
+
+  # --- PAYMENT ROUTES ---
+  /payment/payments:
+    post:
+      tags: [Payments]
+      summary: Process a payment
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [bookingId, paymentMethod]
+              properties:
+                bookingId: { type: string }
+                paymentMethod: { type: string }
+      responses:
+        202:
+          description: Payment processing
+
+  /payment/payments/{id}:
+    get:
+      tags: [Payments]
+      summary: Get payment details
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        200:
+          description: Payment info
