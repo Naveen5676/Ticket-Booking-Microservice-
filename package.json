@@ -1,0 +1,19 @@
+{
+  "name": "ticketflow-root",
+  "version": "1.0.0",
+  "description": "Root configuration for TicketFlow microservices",
+  "scripts": {
+    "dev:gateway": "cd services/api-gateway && npm run dev",
+    "dev:user": "cd services/user-service && npm run dev",
+    "dev:event": "cd services/event-service && npm run dev",
+    "dev:booking": "cd services/booking-service && npm run dev",
+    "dev:payment": "cd services/payment-service && npm run dev",
+    "dev:notification": "cd services/notification-service && npm run dev",
+    "dev:all": "concurrently \"npm run dev:gateway\" \"npm run dev:user\" \"npm run dev:event\" \"npm run dev:booking\" \"npm run dev:payment\" \"npm run dev:notification\"",
+    "docker:up": "docker-compose up --build",
+    "docker:down": "docker-compose down"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
