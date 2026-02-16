@@ -5,7 +5,7 @@ const registerSchema = joi.object({
   email: joi.string().email().required(),
   password: joi.string().min(6).required(),
   phone: joi.string().required(),
-  role: joi.string().valid("user", "admin").optional(),
+  role: joi.valid("user", "admin").optional(),
 });
 
 const loginSchema = joi.object({
@@ -13,15 +13,14 @@ const loginSchema = joi.object({
   password: joi.string().min(6).required(),
 });
 
-
 const userProfileUpdateSchema = joi.object({
   name: joi.string().optional(),
   phone: joi.string().optional(),
-  role: joi.string().valid("user", "admin").optional(),
-})
+  role: joi.valid("user", "admin").optional(),
+});
 
 module.exports = {
   registerSchema,
   loginSchema,
-  userProfileUpdateSchema
+  userProfileUpdateSchema,
 };

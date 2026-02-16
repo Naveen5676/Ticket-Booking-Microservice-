@@ -244,7 +244,7 @@ const deleteBooking = async (req, res) => {
       });
     }
 
-    booking?.status = "cancelled";
+    booking.status = "cancelled";
     await booking.save();
 
     // TODO: publish to rabbitmq to release the lock and update

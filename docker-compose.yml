@@ -1,13 +1,6 @@
 version: "3.8"
 
 services:
-  mongodb:
-    image: mongo:latest
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
-
   redis:
     image: redis:latest
     ports:
@@ -44,10 +37,8 @@ services:
       - "3001:3001"
     environment:
       - PORT=3001
-      - MONGODB_URI=mongodb://mongodb:27017/ticketflow_users
+      - MONGODB_URI=mongodb://host.docker.internal:27017/ticketflow_users
       - JWT_SECRET=your_jwt_secret
-    depends_on:
-      - mongodb
 
   event-service:
     build: ./services/event-service
@@ -55,10 +46,9 @@ services:
       - "3002:3002"
     environment:
       - PORT=3002
-      - MONGODB_URI=mongodb://mongodb:27017/ticketflow_events
+      - MONGODB_URI=mongodb://host.docker.internal:27017/ticketflow_events
       - REDIS_URL=redis://redis:6379
     depends_on:
-      - mongodb
       - redis
 
   booking-service:
@@ -67,11 +57,10 @@ services:
       - "3003:3003"
     environment:
       - PORT=3003
-      - MONGODB_URI=mongodb://mongodb:27017/ticketflow_bookings
+      - MONGODB_URI=mongodb://host.docker.internal:27017/ticketflow_bookings
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://rabbitmq:5672
     depends_on:
-      - mongodb
       - redis
       - rabbitmq
 
@@ -81,11 +70,10 @@ services:
       - "3004:3004"
     environment:
       - PORT=3004
-      - MONGODB_URI=mongodb://mongodb:27017/ticketflow_payments
+      - MONGODB_URI=mongodb://host.docker.internal:27017/ticketflow_payments
       - RABBITMQ_URL=amqp://rabbitmq:5672
       - BOOKING_SERVICE_URL=http://booking-service:3003
     depends_on:
-      - mongodb
       - rabbitmq
 
   notification-service:
@@ -94,11 +82,8 @@ services:
       - "3005:3005"
     environment:
       - PORT=3005
-      - MONGODB_URI=mongodb://mongodb:27017/ticketflow_notifications
+      - MONGODB_URI=mongodb://host.docker.internal:27017/ticketflow_notifications
       - RABBITMQ_URL=amqp://rabbitmq:5672
     depends_on:
-      - mongodb
       - rabbitmq
 
-volumes:
-  mongo-data:

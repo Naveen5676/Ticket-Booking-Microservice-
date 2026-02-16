@@ -14,33 +14,33 @@ const createEventSchema = joi.object({
   category: joi.string().required(),
 });
 
-
 const getEventsSchema = joi.object({
-    page: joi.number().required(),
-    limit: joi.number().required(),
-    category: joi.string().optional().enum(["sports", "music", "arts", "concert"]),
-    search: joi.string().optional(),
-    upcoming: joi.boolean().optional(),
-})
+  page: joi.number().required(),
+  limit: joi.number().required(),
+  category: joi.valid("sports", "music", "arts", "concert"),
+  search: joi.string().optional(),
+  upcoming: joi.boolean().optional(),
+});
 
-
-const patchEventSchema = joi.object({
-  price: joi.number().optional(),
-  description: joi.string().optional(),
-  venue: joi.string().optional(),
-  date: joi.number().min(todayEpoch).required(),
-}).min(1)
+const patchEventSchema = joi
+  .object({
+    price: joi.number().optional(),
+    description: joi.string().optional(),
+    venue: joi.string().optional(),
+    date: joi.number().min(todayEpoch).required(),
+  })
+  .min(1);
 
 const patchSeatStatusSchema = joi.object({
   eventId: joi.string().required(),
   seatNumber: joi.string().required(),
-  status: joi.string().required().enum(["available", "locked", "booked"]),
+  status: joi.valid("available", "locked", "booked"),
   userId: joi.string().required(),
-})
+});
 
 module.exports = {
   createEventSchema,
   getEventsSchema,
   patchEventSchema,
-  patchSeatStatusSchema
+  patchSeatStatusSchema,
 };
