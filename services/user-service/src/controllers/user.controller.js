@@ -23,7 +23,15 @@ const registerUser = async (req, res) => {
       return res.status(400).json({ message: error.details[0].message });
     }
 
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, phone } = req.body;
+
+    const userExists = await User.findOne({ email });
+
+    if (userExists) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User already exists" });
+    }
 
     const hashedPassword = await hashPassword(password);
 
@@ -32,12 +40,15 @@ const registerUser = async (req, res) => {
       email,
       password: hashedPassword,
       role,
+      phone,
     });
 
-    res.status(201).json({ message: "User registered successfully" });
+    res
+      .status(201)
+      .json({ success: true, message: name + " registered successfully" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -53,8 +64,9 @@ const loginUser = async (req, res) => {
 
     const user = await User.findOne({ email });
 
+    // console.log("user found. ---?>", user);
     if (!user) {
-      return res.status(401).json({ message: "Invalid credentials" });
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
     }
 
     const passwordMatch = await comparePassword(password, user.password);
@@ -63,14 +75,25 @@ const loginUser = async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    const token = generateToken(user._id);
+    const token = await generateToken(user._id);
+
+    // console.log(token);
 
     res.cookie("token", token);
 
-    res.status(200).json({ message: "User logged in successfully" });
+    res.status(200).json({
+      success: true,
+      message: "User logged in successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -131,7 +154,7 @@ const getUserProfile = async (req, res) => {
     const userId = req.headers["x-user-id"];
 
     if (!userId) {
-      return res.status(401).json({ message: "Unauthorized" });
+      return res.status(401).json({success: false, message: "Unauthorized" });
     }
 
     const user = await User.findById(userId).select("-password");

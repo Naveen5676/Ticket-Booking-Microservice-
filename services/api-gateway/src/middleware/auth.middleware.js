@@ -20,9 +20,11 @@ const authMiddleware = async (req, res, next) => {
       return res.status(401).json({ message: "Invalid token" });
     }
 
+    console.log("user in authmiddleware", response?.data?.user);
+
     //add  user info to the header
-    req.headers["x-user-id"] = response?.data?.userId;
-    req.headers["x-user-role"] = response?.data?.role;
+    // req.headers["x-user-id"] = response?.data?.userId;
+    // req.headers["x-user-role"] = response?.data?.role;
 
     req.user = response?.data?.user;
 

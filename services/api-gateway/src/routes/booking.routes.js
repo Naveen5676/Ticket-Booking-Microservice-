@@ -13,7 +13,7 @@ bookingRouter.post("/bookings", authMiddleware, async (req, res) => {
       req.body,
       {
         headers: {
-          "x-user-id": req.user._id,
+          "x-user-id": req.user.userId,
           "x-user-role": req.user.role,
         },
       },
@@ -30,7 +30,7 @@ bookingRouter.get("/bookings", authMiddleware, async (req, res) => {
   try {
     const response = await axios.get(`${bookingServiceUrl}/bookings`, {
       headers: {
-        "x-user-id": req.user._id,
+        "x-user-id": req.user.userId,
         "x-user-role": req.user.role,
       },
     });
@@ -48,7 +48,7 @@ bookingRouter.get("/bookings/:id", authMiddleware, async (req, res) => {
       `${bookingServiceUrl}/bookings/${req.params.id}`,
       {
         headers: {
-          "x-user-id": req.user._id,
+          "x-user-id": req.user.userId,
           "x-user-role": req.user.role,
         },
       },
@@ -67,7 +67,7 @@ bookingRouter.delete("/bookings/:id", authMiddleware, async (req, res) => {
       `${bookingServiceUrl}/bookings/${req.params.id}`,
       {
         headers: {
-          "x-user-id": req.user._id,
+          "x-user-id": req.user.userId,
           "x-user-role": req.user.role,
         },
       },
@@ -87,7 +87,7 @@ bookingRouter.patch("/bookings/:id", authMiddleware, async (req, res) => {
       req.body,
       {
         headers: {
-          "x-user-id": req.user._id,
+          "x-user-id": req.user.userId,
           "x-user-role": req.user.role,
         },
       },

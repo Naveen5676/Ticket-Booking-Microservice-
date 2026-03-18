@@ -12,8 +12,11 @@ userRouter.post("/register", async (req, res) => {
       `${userServiceUrl}/users/register`,
       req.body,
     );
+    console.log(response);
+
     return res.status(response.status).json(response.data);
   } catch (error) {
+    console.log(error);
     return res
       .status(error.response?.status || 500)
       .json(error.response?.data || { message: "Error" });
@@ -25,7 +28,14 @@ userRouter.post("/login", async (req, res) => {
     const response = await axios.post(
       `${userServiceUrl}/users/login`,
       req.body,
+      { withCredentials: true },
     );
+
+    // console.log("response", response.headers["set-cookie"]);
+    // Forward cookie from user service 
+    if (response.headers["set-cookie"]) {
+      res.setHeader("Set-Cookie", response.headers["set-cookie"]);
+    }
 
     return res.status(response.status).json(response.data);
   } catch (error) {
@@ -52,6 +62,7 @@ userRouter.post("/logout", async (req, res) => {
 
 userRouter.get("/profile", authMiddleware, async (req, res) => {
   try {
+    console.log("profile api calling", req.user);
     const response = await axios.get(`${userServiceUrl}/users/profile`, {
       headers: {
         "x-user-id": req.headers["x-user-id"],

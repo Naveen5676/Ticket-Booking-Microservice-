@@ -18,14 +18,18 @@ services:
   api-gateway:
     build: ./services/api-gateway
     ports:
-      - "3000:3000"
+      - "3006:3006"
+    volumes:
+      - ./services/api-gateway:/usr/src/app
+      - /usr/src/app/node_modules
+    command: npm run dev
     environment:
-      - PORT=3000
+      - PORT=3006
       - USER_SERVICE_URL=http://user-service:3001
       - EVENT_SERVICE_URL=http://event-service:3002
       - BOOKING_SERVICE_URL=http://booking-service:3003
       - PAYMENT_SERVICE_URL=http://payment-service:3004
-      - JWT_SECRET=your_jwt_secret
+      - JWT_SECRET=45d4cc43e438df9795ed7a9e71306de6
     depends_on:
       - user-service
       - event-service
@@ -35,15 +39,24 @@ services:
     build: ./services/user-service
     ports:
       - "3001:3001"
+    volumes:
+      - ./services/user-service:/usr/src/app
+      - /usr/src/app/node_modules
+    command: npm run dev
     environment:
       - PORT=3001
       - MONGODB_URI=mongodb://host.docker.internal:27017/ticketflow_users
-      - JWT_SECRET=your_jwt_secret
+      - JWT_SECRET=45d4cc43e438df9795ed7a9e71306de6
+      - JWT_EXPIRY=1d
 
   event-service:
     build: ./services/event-service
     ports:
       - "3002:3002"
+    volumes:
+      - ./services/event-service:/usr/src/app
+      - /usr/src/app/node_modules
+    command: npm run dev
     environment:
       - PORT=3002
       - MONGODB_URI=mongodb://host.docker.internal:27017/ticketflow_events
@@ -55,6 +68,10 @@ services:
     build: ./services/booking-service
     ports:
       - "3003:3003"
+    volumes:
+      - ./services/booking-service:/usr/src/app
+      - /usr/src/app/node_modules
+    command: npm run dev
     environment:
       - PORT=3003
       - MONGODB_URI=mongodb://host.docker.internal:27017/ticketflow_bookings
@@ -68,6 +85,10 @@ services:
     build: ./services/payment-service
     ports:
       - "3004:3004"
+    volumes:
+      - ./services/payment-service:/usr/src/app
+      - /usr/src/app/node_modules
+    command: npm run dev
     environment:
       - PORT=3004
       - MONGODB_URI=mongodb://host.docker.internal:27017/ticketflow_payments
@@ -80,10 +101,13 @@ services:
     build: ./services/notification-service
     ports:
       - "3005:3005"
+    volumes:
+      - ./services/notification-service:/usr/src/app
+      - /usr/src/app/node_modules
+    command: npm run dev
     environment:
       - PORT=3005
       - MONGODB_URI=mongodb://host.docker.internal:27017/ticketflow_notifications
       - RABBITMQ_URL=amqp://rabbitmq:5672
     depends_on:
       - rabbitmq
-

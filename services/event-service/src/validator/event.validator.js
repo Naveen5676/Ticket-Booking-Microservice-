@@ -9,7 +9,7 @@ const createEventSchema = joi.object({
   description: joi.string().required(),
   venue: joi.string().required(),
   date: joi.number().min(todayEpoch).required(),
-  totalSeats: joi.number().required(),
+  totalSeats: joi.number().required().max(50),
   pricePerSeat: joi.number().required(),
   category: joi.string().required(),
 });

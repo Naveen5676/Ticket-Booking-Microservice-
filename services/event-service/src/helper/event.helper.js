@@ -8,7 +8,7 @@ const generateSeats = (totalSeats) => {
   let seatCount = 0;
 
   for (let row of rows) {
-    for (let num = 1; num <= seatsPerRow; num++) {
+    for (let num = 1; num <= seatPerRow; num++) {
       if (seatCount >= totalSeats) break;
 
       seats.push({

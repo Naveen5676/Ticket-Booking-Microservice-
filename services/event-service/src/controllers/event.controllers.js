@@ -8,19 +8,24 @@ const {
 
 const { generateSeats } = require("../helper/event.helper");
 
+const mongoose = require("mongoose");
+
 const createEvent = async (req, res) => {
   try {
+    console.log("headres", req.headers);
     const loggedInUserId = req.headers["x-user-id"];
     const loggedInUserRole = req.headers["x-user-role"];
 
     if (loggedInUserRole.toLowerCase() !== "admin") {
-      return res.status(401).json({ message: "Unauthorized" });
+      return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
     const { error } = createEventSchema.validate(req.body);
 
     if (error) {
-      return res.status(400).json({ message: error.details[0].message });
+      return res
+        .status(400)
+        .json({ success: false, message: error.details[0].message });
     }
 
     const {
@@ -34,6 +39,8 @@ const createEvent = async (req, res) => {
     } = req.body;
 
     const seats = generateSeats(totalSeats);
+
+    console.log("loggedInUserId", loggedInUserId);
 
     const event = await Events.create({
       eventName: name,
@@ -106,16 +113,28 @@ const getEvents = async (req, res) => {
 
 const getParticularEvent = async (req, res) => {
   try {
+    console.log("called inside getparticular events");
     const loggedInUserRole = req.headers["x-user-role"];
 
     if (loggedInUserRole.toLowerCase() !== "admin") {
-      return res.status(401).json({ message: "Unauthorized" });
+      return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
+    console.log("req.params", req.params);
     const eventId = req.params.id;
 
     if (!eventId) {
-      return res.status(400).json({ message: "Event id is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Event id is required" });
+    }
+
+
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Event ID format",
+      });
     }
 
     const event = await Events.findById(eventId);
@@ -132,7 +151,9 @@ const getParticularEvent = async (req, res) => {
       data: event,
     });
   } catch (error) {
-    return res.status(500).json({ message: "Internal server error" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error", error: error });
   }
 };
 

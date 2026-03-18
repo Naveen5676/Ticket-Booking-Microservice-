@@ -15,7 +15,7 @@ paymentRouter.post("/payments", authMiddleware, async (req, res) => {
       req.body,
       {
         headers: {
-          "x-user-id": req.user._id,
+          "x-user-id": req.user.userId,
           "x-user-role": req.user.role,
         },
       },
@@ -35,7 +35,7 @@ paymentRouter.get("/payments/:id", authMiddleware, async (req, res) => {
       `${paymentServiceUrl}/payments/${req.params.id}`,
       {
         headers: {
-          "x-user-id": req.user._id,
+          "x-user-id": req.user.userId,
           "x-user-role": req.user.role,
         },
       },

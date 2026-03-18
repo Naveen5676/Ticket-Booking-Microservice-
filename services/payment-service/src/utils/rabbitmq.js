@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const amqp = require("amqplib");
 
 let channel;

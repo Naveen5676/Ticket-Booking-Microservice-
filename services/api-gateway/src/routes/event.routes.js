@@ -1,6 +1,7 @@
 const express = require("express");
 const axios = require("axios");
 const { authMiddleware } = require("../middleware/auth.middleware");
+const logger = require("../utils/logger");
 
 const eventRouter = express.Router();
 
@@ -10,10 +11,12 @@ const eventServiceUrl =
 eventRouter.post("/events", authMiddleware, async (req, res) => {
   try {
     const loggedInUser = req.user;
+    console.log("headers in event router", req.headers);
+    console.log("loggin user in event router", req.user);
 
     const response = await axios.post(`${eventServiceUrl}/events`, req.body, {
       headers: {
-        "x-user-id": loggedInUser._id,
+        "x-user-id": loggedInUser.userId,
         "x-user-role": loggedInUser.role,
       },
     });
@@ -27,10 +30,13 @@ eventRouter.post("/events", authMiddleware, async (req, res) => {
 
 eventRouter.get("/events", authMiddleware, async (req, res) => {
   try {
+    // console.log("logged in user", req.user);
+    // logger.info("logged in user", req.user);
+
     const response = await axios.get(`${eventServiceUrl}/events`, {
       params: req.query,
       headers: {
-        "x-user-id": req.user._id,
+        "x-user-id": req.user.userId,
         "x-user-role": req.user.role,
       },
     });
@@ -45,15 +51,14 @@ eventRouter.get("/events", authMiddleware, async (req, res) => {
 
 eventRouter.get("/events/:id", authMiddleware, async (req, res) => {
   try {
-    const response = await axios.get(
-      `${eventServiceUrl}/events/${req.params.id}`,
-      {
-        headers: {
-          "x-user-id": req.user._id,
-          "x-user-role": req.user.role,
-        },
+    const eventId = req?.params?.id || "";
+    console.log("calling evetn detial get api", req.params);
+    const response = await axios.get(`${eventServiceUrl}/events/${eventId}`, {
+      headers: {
+        "x-user-id": req.user.userId,
+        "x-user-role": req.user.role,
       },
-    );
+    });
     return res.status(response.status).json(response.data);
   } catch (error) {
     console.error(error);
@@ -70,7 +75,7 @@ eventRouter.patch("/events/:id", authMiddleware, async (req, res) => {
       req.body,
       {
         headers: {
-          "x-user-id": req.user._id,
+          "x-user-id": req.user.userId,
           "x-user-role": req.user.role,
         },
       },
@@ -90,7 +95,7 @@ eventRouter.delete("/events/:id", authMiddleware, async (req, res) => {
       `${eventServiceUrl}/events/${req.params.id}`,
       {
         headers: {
-          "x-user-id": req.user._id,
+          "x-user-id": req.user.userId,
           "x-user-role": req.user.role,
         },
       },
@@ -110,7 +115,7 @@ eventRouter.get("/events/:id/seats", authMiddleware, async (req, res) => {
       `${eventServiceUrl}/events/${req.params.id}/seats`,
       {
         headers: {
-          "x-user-id": req.user._id,
+          "x-user-id": req.user.userId,
           "x-user-role": req.user.role,
         },
       },
