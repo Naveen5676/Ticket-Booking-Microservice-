@@ -22,6 +22,7 @@ paymentRouter.post("/payments", authMiddleware, async (req, res) => {
     );
     return res.status(response.status).json(response.data);
   } catch (error) {
+    console.log("api gateway error", error);
     return res
       .status(error?.response?.status || 500)
       .json(error?.response?.data || { message: "Error in Payment Service" });

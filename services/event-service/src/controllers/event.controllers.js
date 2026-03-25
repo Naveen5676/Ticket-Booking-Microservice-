@@ -114,11 +114,11 @@ const getEvents = async (req, res) => {
 const getParticularEvent = async (req, res) => {
   try {
     console.log("called inside getparticular events");
-    const loggedInUserRole = req.headers["x-user-role"];
+    // const loggedInUserRole = req.headers["x-user-role"];
 
-    if (loggedInUserRole.toLowerCase() !== "admin") {
-      return res.status(401).json({ success: false, message: "Unauthorized" });
-    }
+    // if (loggedInUserRole.toLowerCase() !== "admin") {
+    //   return res.status(401).json({ success: false, message: "Unauthorized" });
+    // }
 
     console.log("req.params", req.params);
     const eventId = req.params.id;

@@ -32,7 +32,7 @@ userRouter.post("/login", async (req, res) => {
     );
 
     // console.log("response", response.headers["set-cookie"]);
-    // Forward cookie from user service 
+    // Forward cookie from user service
     if (response.headers["set-cookie"]) {
       res.setHeader("Set-Cookie", response.headers["set-cookie"]);
     }
@@ -62,11 +62,11 @@ userRouter.post("/logout", async (req, res) => {
 
 userRouter.get("/profile", authMiddleware, async (req, res) => {
   try {
-    console.log("profile api calling", req.user);
+    // console.log("profile api calling", req.user);
     const response = await axios.get(`${userServiceUrl}/users/profile`, {
       headers: {
-        "x-user-id": req.headers["x-user-id"],
-        "x-user-role": req.headers["x-user-role"],
+        "x-user-id": req.user.userId,
+        "x-user-role": req.user.role,
       },
     });
     return res.status(response.status).json(response.data);
@@ -84,8 +84,8 @@ userRouter.patch("/update", authMiddleware, async (req, res) => {
       req.body,
       {
         headers: {
-          "x-user-id": req.headers["x-user-id"],
-          "x-user-role": req.headers["x-user-role"],
+          "x-user-id": req.user.userId,
+          "x-user-role": req.user.role,
         },
       },
     );
@@ -103,8 +103,8 @@ userRouter.get("/profile/:id", authMiddleware, async (req, res) => {
       `${userServiceUrl}/users/${req.params.id}`,
       {
         headers: {
-          "x-user-id": req.headers["x-user-id"],
-          "x-user-role": req.headers["x-user-role"],
+          "x-user-id": req.user.userId,
+          "x-user-role": req.user.role,
         },
       },
     );

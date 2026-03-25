@@ -5,6 +5,7 @@ const { connectToDatabase } = require("./utils/database");
 const { connectRedis } = require("./utils/redis");
 const { connectRabbitMQ } = require("./utils/rabbitmq");
 const { startPaymentConsumer } = require("./consumers/payment.consumer");
+const  {bookingCleanupCron} = require("./cron/booking.cleanup");
 
 const app = express();
 
@@ -31,7 +32,10 @@ const startServer = async () => {
     //STEP 4: Start Payment Consumer
     await startPaymentConsumer();
 
-    // STEP 5: Start the server
+    //STEP 5: CRON job for cleanup
+    bookingCleanupCron();
+
+    // STEP 6: Start the server
     app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
   } catch (error) {
     console.error("❌ Failed to start the server:", error);

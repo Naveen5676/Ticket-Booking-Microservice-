@@ -13,11 +13,14 @@ const Booking = require("../models/booking.model");
 
 const eventServiceUrl = process.env.EVENT_SERVICE_URL;
 
+const { publishEvent } = require("../utils/rabbitmq");
+
 const createBooking = async (req, res) => {
   try {
     // 1 validate the joi schema
     const { error } = createBookingSchema.validate(req.body);
 
+    console.log("error in createBooking", error);
     if (error) {
       return res.status(400).json({ message: error.details[0].message });
     }
@@ -31,6 +34,8 @@ const createBooking = async (req, res) => {
       `${eventServiceUrl}/events/${eventId}`,
     );
 
+    // console.log("eventDetails in createBooking", eventDetails);
+
     if (eventDetails?.data?.success === false) {
       return res.status(404).json({ message: eventDetails?.data?.message });
     }
@@ -40,6 +45,8 @@ const createBooking = async (req, res) => {
     const requestedSeatsInfo = allSeats.filter((seat) =>
       seats.includes(seat.seatNumber),
     );
+
+    console.log("requestedSeatsInfo in createBooking", requestedSeatsInfo);
 
     const unavailableSeats = requestedSeatsInfo.filter(
       (seat) => seat.status !== "available",
@@ -97,6 +104,7 @@ const createBooking = async (req, res) => {
       });
     }
 
+    console.log("locking set using redix seats -->", seats);
     // 6 set redis ttl for 10 min
     const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes from now
     for (const seatNumber of seats) {
@@ -126,9 +134,13 @@ const createBooking = async (req, res) => {
       expiresAt,
     });
 
+    console.log("booking created in db -->", booking);
+
+    console.log("booking creted published event successfully ");
+
     // 8 publish to rabbmit mq todo for the payment service
     // TODO: Publish to RabbitMQ so Payment Service knows a booking is waiting
-    // publishToQueue("booking.created", { bookingId: booking._id, totalAmount });
+    // publishEvent("booking.created", { bookingId: booking._id, totalAmount });
 
     // 9 return booking details
     return res.status(201).json({
@@ -145,9 +157,10 @@ const createBooking = async (req, res) => {
       },
     });
   } catch (error) {
+    console.log("error", error);
     res.status(500).json({
       success: false,
-      message: "Internal server error",
+      message: error?.message || "Internal server error",
     });
   }
 };
@@ -205,8 +218,8 @@ const getBooking = async (req, res) => {
     const booking = await Booking.findById(id);
 
     if (!booking) {
-      return res.status(404).json({
-        success: false,
+      return res.status(200).json({
+        success: true,
         message: "Booking not found",
       });
     }
@@ -219,7 +232,7 @@ const getBooking = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Internal server error",
+      message: error?.message || "Internal server error",
     });
   }
 };
@@ -238,8 +251,8 @@ const deleteBooking = async (req, res) => {
     const booking = await Booking.findById(id);
 
     if (!booking) {
-      return res.status(404).json({
-        success: false,
+      return res.status(200).json({
+        success: true,
         message: "Booking not found",
       });
     }
@@ -297,8 +310,8 @@ const patchBooking = async (req, res) => {
     const bookingDetail = await Booking.findById(id);
 
     if (!bookingDetail) {
-      return res.status(404).json({
-        success: false,
+      return res.status(200).json({
+        success: true,
         message: "Booking not found",
       });
     }

@@ -11,8 +11,8 @@ const eventServiceUrl =
 eventRouter.post("/events", authMiddleware, async (req, res) => {
   try {
     const loggedInUser = req.user;
-    console.log("headers in event router", req.headers);
-    console.log("loggin user in event router", req.user);
+    // console.log("headers in event router", req.headers);
+    // console.log("loggin user in event router", req.user);
 
     const response = await axios.post(`${eventServiceUrl}/events`, req.body, {
       headers: {
@@ -30,8 +30,8 @@ eventRouter.post("/events", authMiddleware, async (req, res) => {
 
 eventRouter.get("/events", authMiddleware, async (req, res) => {
   try {
-    // console.log("logged in user", req.user);
-    // logger.info("logged in user", req.user);
+    console.log("logged in user", req.user);
+    logger.info("logged in user", req.user);
 
     const response = await axios.get(`${eventServiceUrl}/events`, {
       params: req.query,
@@ -51,8 +51,9 @@ eventRouter.get("/events", authMiddleware, async (req, res) => {
 
 eventRouter.get("/events/:id", authMiddleware, async (req, res) => {
   try {
+    // console.log("req.user in event router", req.user);
     const eventId = req?.params?.id || "";
-    console.log("calling evetn detial get api", req.params);
+    // console.log("calling evetn detial get api", req.params);
     const response = await axios.get(`${eventServiceUrl}/events/${eventId}`, {
       headers: {
         "x-user-id": req.user.userId,

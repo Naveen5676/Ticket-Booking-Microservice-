@@ -154,7 +154,7 @@ const getUserProfile = async (req, res) => {
     const userId = req.headers["x-user-id"];
 
     if (!userId) {
-      return res.status(401).json({success: false, message: "Unauthorized" });
+      return res.status(401).json({success: false, message: "Invalid token" });
     }
 
     const user = await User.findById(userId).select("-password");

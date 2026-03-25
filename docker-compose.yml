@@ -14,7 +14,12 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
-
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  
   api-gateway:
     build: ./services/api-gateway
     ports:
@@ -31,9 +36,12 @@ services:
       - PAYMENT_SERVICE_URL=http://payment-service:3004
       - JWT_SECRET=45d4cc43e438df9795ed7a9e71306de6
     depends_on:
-      - user-service
-      - event-service
-      - booking-service
+       user-service :
+          condition: service_started
+       event-service:
+          condition: service_started
+       booking-service:
+          condition: service_started
 
   user-service:
     build: ./services/user-service
@@ -62,7 +70,8 @@ services:
       - MONGODB_URI=mongodb://host.docker.internal:27017/ticketflow_events
       - REDIS_URL=redis://redis:6379
     depends_on:
-      - redis
+       redis :
+          condition: service_started
 
   booking-service:
     build: ./services/booking-service
@@ -77,9 +86,12 @@ services:
       - MONGODB_URI=mongodb://host.docker.internal:27017/ticketflow_bookings
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://rabbitmq:5672
+      - EVENT_SERVICE_URL=http://event-service:3002
     depends_on:
-      - redis
-      - rabbitmq
+      redis :
+         condition: service_started
+      rabbitmq:
+          condition: service_healthy
 
   payment-service:
     build: ./services/payment-service
@@ -95,7 +107,10 @@ services:
       - RABBITMQ_URL=amqp://rabbitmq:5672
       - BOOKING_SERVICE_URL=http://booking-service:3003
     depends_on:
-      - rabbitmq
+      booking-service:
+         condition: service_started
+      rabbitmq :
+           condition: service_healthy
 
   notification-service:
     build: ./services/notification-service
@@ -110,4 +125,5 @@ services:
       - MONGODB_URI=mongodb://host.docker.internal:27017/ticketflow_notifications
       - RABBITMQ_URL=amqp://rabbitmq:5672
     depends_on:
-      - rabbitmq
+      rabbitmq:
+          condition: service_healthy

@@ -5,20 +5,23 @@ const { createPaymentSchema } = require("../validator/payment.validator");
 const { publishEvent } = require("../utils/rabbitmq");
 const Payment = require("../models/payment.model");
 
+const axios = require("axios");
+const mongoose = require("mongoose");
+
 const bookingServiceUrl = process.env.BOOKING_SERVICE_URL;
 
 const getPayment = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { paymentId } = req.params;
 
-    if (!id) {
+    if (!paymentId) {
       return res.status(400).json({
         success: false,
-        message: "Transaction id is required",
+        message: "Payment id is required",
       });
     }
 
-    const payment = await Payment.findOne({ transactionId: id });
+    const payment = await Payment.findOne({ paymentId: paymentId });
 
     if (!payment) {
       return res.status(404).json({
@@ -43,6 +46,7 @@ const getPayment = async (req, res) => {
 
 const processPayment = async (req, res) => {
   try {
+    console.log("received api request to precess payment ", req.body);
     // Step 1: Validate request
     const { error } = createPaymentSchema.validate(req.body);
     if (error) {
@@ -65,11 +69,13 @@ const processPayment = async (req, res) => {
       const bookingResponse = await axios.get(
         `${bookingServiceUrl}/bookings/${bookingId}`,
       );
+      console.log("got the booking details ", bookingResponse);
       booking = bookingResponse.data.data;
-    } catch (err) {
+    } catch (error) {
+      console.log("error in getting booking details", error);
       return res.status(404).json({
         success: false,
-        message: "Booking not found",
+        message: error?.message || "Booking not found",
       });
     }
     // Step 3: Check if booking is in pending state
@@ -87,7 +93,9 @@ const processPayment = async (req, res) => {
       });
     }
     // Step 5: Generate unique paymentId
-    const paymentId = `pay_${Date.now()}`;
+    const paymentId = new mongoose.Types.ObjectId();
+
+    console.log("step 5 payment id creted", paymentId);
     // Step 6: Create payment record with status "processing"
     const payment = await Payment.create({
       bookingId,
@@ -97,6 +105,8 @@ const processPayment = async (req, res) => {
       paymentMethod,
       paymentId,
     });
+
+    console.log("step 7 return response to user stored in payment ");
     // Step 7: Return immediate response to user
     res.status(202).json({
       success: true,
@@ -109,6 +119,8 @@ const processPayment = async (req, res) => {
         createdAt: payment.createdAt,
       },
     });
+
+    console.log("step 8 processing payment async");
     // Step 8: Process payment asynchronously (don't await in response)
     processPaymentAsync(payment, booking);
   } catch (error) {
