@@ -138,9 +138,14 @@ const createBooking = async (req, res) => {
 
     console.log("booking creted published event successfully ");
 
-    // 8 publish to rabbmit mq todo for the payment service
-    // TODO: Publish to RabbitMQ so Payment Service knows a booking is waiting
-    // publishEvent("booking.created", { bookingId: booking._id, totalAmount });
+    // 8 publish to rabbitmq for the payment service
+    publishEvent("booking_events", "booking.created", {
+      bookingId: booking._id,
+      totalAmount,
+      userId: loggedInUser,
+      eventId,
+      seats,
+    });
 
     // 9 return booking details
     return res.status(201).json({
@@ -260,8 +265,35 @@ const deleteBooking = async (req, res) => {
     booking.status = "cancelled";
     await booking.save();
 
-    // TODO: publish to rabbitmq to release the lock and update
-    // the event service to update its seats to available
+    // Release seats in Event Service and Redis
+    for (const seatNumber of booking.seats) {
+      try {
+        await axios.patch(
+          `${eventServiceUrl}/events/${booking.eventId}/seats`,
+          {
+            eventId: booking.eventId,
+            seatNumber,
+            status: "available",
+            userId: booking.userId,
+          },
+        );
+
+        // Delete Redis lock
+        await redisClient.del(`seat:lock:${booking.eventId}:${seatNumber}`);
+      } catch (e) {
+        console.error(
+          "Failed to release seat during cancellation",
+          seatNumber,
+          e.message,
+        );
+      }
+    }
+
+    // Publish booking.cancelled event
+    publishEvent("booking_events", "booking.cancelled", {
+      bookingId: booking._id,
+      userId: booking.userId,
+    });
 
     return res.status(200).json({
       success: true,
@@ -326,17 +358,51 @@ const patchBooking = async (req, res) => {
     bookingDetail.paymentId = paymentId;
     bookingDetail.status = status;
     bookingDetail.transactionId = transactionId;
+
+    if (status === "confirmed") {
+      bookingDetail.confirmedAt = Date.now();
+    }
+
     await bookingDetail.save();
+
+    // If confirmed, update seats in Event Service and clear Redis locks
+    if (status === "confirmed") {
+      for (const seatNumber of bookingDetail.seats) {
+        try {
+          await axios.patch(
+            `${eventServiceUrl}/events/${bookingDetail.eventId}/seats`,
+            {
+              eventId: bookingDetail.eventId,
+              seatNumber,
+              status: "booked",
+              userId: bookingDetail.userId,
+            },
+          );
+          await redisClient.del(
+            `seat:lock:${bookingDetail.eventId}:${seatNumber}`,
+          );
+        } catch (e) {
+          console.error(
+            "Failed to update seat to booked",
+            seatNumber,
+            e.message,
+          );
+        }
+      }
+
+      // Publish booking.confirmed event
+      publishEvent("booking_events", "booking.confirmed", {
+        bookingId: bookingDetail._id,
+        userId: bookingDetail.userId,
+        eventId: bookingDetail.eventId,
+      });
+    }
 
     return res.status(200).json({
       success: true,
-      message:
-        "Booking created successfully. Please complete payment within 10 minutes.",
+      message: "Booking updated successfully",
       data: bookingDetail,
     });
-
-    //TODO: publish to rabbitmq to release the lock and update
-    // the event service to update its seats to booked
   } catch (error) {
     res.status(500).json({
       success: false,

@@ -1,8 +1,8 @@
 const cron = require("node-cron");
-
-const booking = require("../models/booking.model");
-
-const redisClient = require("../utils/redis");
+const Booking = require("../models/booking.model");
+const { redisClient } = require("../utils/redis");
+const axios = require("axios");
+const { publishEvent } = require("../utils/rabbitmq");
 
 const eventServiceUrl = process.env.EVENT_SERVICE_URL;
 
@@ -10,25 +10,30 @@ const bookingCleanupCron = () => {
   cron.schedule("*/10 * * * *", async () => {
     console.log("🧹 Running pending bookings cleanup cron job...");
 
-    const pendingBooking = booking.find({ status: "pending" });
+    try {
+      const pendingBookings = await Booking.find({ status: "pending" });
 
-    for (let booking of pendingBooking) {
-      let isLockMissing = false;
+      for (let booking of pendingBookings) {
+        let isExpired = false;
 
-      //Check for redis for seat locks
-      for (let seatNumber of booking.seats) {
-        const lockKey = `seat:lock:${booking.eventId}:${seatNumber}`;
+        // Check Redis for seat locks
+        for (let seatNumber of booking.seats) {
+          const lockKey = `seat:lock:${booking.eventId}:${seatNumber}`;
+          const isLocked = await redisClient.get(lockKey);
 
-        const isLocked = await redisClient.get(lockKey);
-
-        // If lock is not in redis , the ttl has expired
-        if (!isLocked) {
-          isLockMissing = true;
-          break;
+          // If lock is not in redis, the ttl has expired
+          if (!isLocked) {
+            isExpired = true;
+            break;
+          }
         }
 
-        // If Redis lock is gone OR the hard expiresAt timestamp has passed
-        if (isLockMissing || booking.expiresAt < new Date.now()) {
+        // Also check hard expiration time
+        if (booking.expiresAt < Date.now()) {
+          isExpired = true;
+        }
+
+        if (isExpired) {
           console.log(`⚠️ Booking ${booking._id} expired. Starting cleanup...`);
 
           // 1. Mark the booking as "expired"
@@ -48,6 +53,11 @@ const bookingCleanupCron = () => {
                 },
               );
               console.log(`🔓 Seat ${seatNumber} released successfully`);
+
+              // Also ensure redis lock is deleted (it should be, but just in case)
+              await redisClient.del(
+                `seat:lock:${booking.eventId}:${seatNumber}`,
+              );
             } catch (error) {
               console.error(
                 `❌ Error releasing seat ${seatNumber}:`,
@@ -55,9 +65,19 @@ const bookingCleanupCron = () => {
               );
             }
           }
+
+          // 3. Publish booking.cancelled event so Notification Service knows
+          publishEvent("booking_events", "booking.cancelled", {
+            bookingId: booking._id,
+            userId: booking.userId,
+            reason: "Reservation expired",
+          });
+
           console.log(`✅ Cleanup finished for booking ${booking._id}`);
         }
       }
+    } catch (error) {
+      console.error("❌ Cleanup cron error:", error);
     }
   });
 };

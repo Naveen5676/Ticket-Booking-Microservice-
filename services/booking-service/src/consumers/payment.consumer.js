@@ -1,6 +1,6 @@
 require("dotenv").config();
 
-const { consumeEvent } = require("../utils/rabbitmq");
+const { consumeEvent, publishEvent } = require("../utils/rabbitmq");
 const Booking = require("../models/booking.model");
 const { redisClient } = require("../utils/redis");
 const axios = require("axios");
@@ -62,6 +62,13 @@ const startPaymentConsumer = async () => {
         }
 
         console.log(`✅ Booking ${bookingId} confirmed successfully`);
+
+        // Publish booking.confirmed event for Notification Service
+        publishEvent("booking_events", "booking.confirmed", {
+          bookingId: booking._id,
+          userId: booking.userId,
+          eventId: booking.eventId,
+        });
       } catch (error) {
         console.error("Error in success payment event ", error);
         throw error;
@@ -115,6 +122,13 @@ const startPaymentConsumer = async () => {
         }
 
         console.log(`❌ Booking ${bookingId} marked as failed, seats released`);
+
+        // Publish booking.failed event (aliased to cancelled for notification logic)
+        publishEvent("booking_events", "booking.cancelled", {
+          bookingId: booking._id,
+          userId: booking.userId,
+          reason: reason,
+        });
       } catch (error) {
         console.error("Error in failed payment event ", error);
         throw error;

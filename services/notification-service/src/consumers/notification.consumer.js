@@ -8,16 +8,17 @@ const startNotificationConsumer = async () => {
     );
     const channel = await connection.createChannel();
 
-    const exchange = "ticketflow";
+    const bookingExchange = "booking_events";
+    const paymentExchange = "payment_events";
     const queue = "notification_queue";
 
-    await channel.assertExchange(exchange, "topic", { durable: true });
+    await channel.assertExchange(bookingExchange, "topic", { durable: true });
+    await channel.assertExchange(paymentExchange, "topic", { durable: true });
     await channel.assertQueue(queue, { durable: true });
 
     // Bind to relevant events
-    await channel.bindQueue(queue, exchange, "booking.confirmed");
-    await channel.bindQueue(queue, exchange, "booking.cancelled");
-    await channel.bindQueue(queue, exchange, "payment.failed");
+    await channel.bindQueue(queue, bookingExchange, "booking.*");
+    await channel.bindQueue(queue, paymentExchange, "payment.failed");
 
     console.log(`[*] Waiting for messages in ${queue}. To exit press CTRL+C`);
 
@@ -35,7 +36,11 @@ const startNotificationConsumer = async () => {
             createdAt: new Date(),
           };
 
-          if (routingKey === "booking.confirmed") {
+          if (routingKey === "booking.created") {
+            notificationData.type = "BOOKING_CREATED";
+            notificationData.title = "Booking Initiated";
+            notificationData.message = `Your booking for event ${content.eventId} is pending. Please complete payment within 10 minutes.`;
+          } else if (routingKey === "booking.confirmed") {
             notificationData.type = "BOOKING_CONFIRMED";
             notificationData.title = "Booking Confirmed";
             notificationData.message = `Your booking for event ${content.eventId || content.bookingId} has been confirmed!`;
